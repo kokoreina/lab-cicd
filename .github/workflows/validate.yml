@@ -16,9 +16,9 @@ jobs:
 
       - name: Install kubeconform
         run: |
-          curl -sSLo kc.tgz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
-          tar -xzf kc.tgz
-          sudo mv kubeconform /usr/local/bin/
+          curl -sSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
 
       - name: Validate Kubernetes manifests
         run: kubeconform -strict -summary k8s/

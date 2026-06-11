@@ -1,49 +1,44 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: demo
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
+  name: frontend
   namespace: demo
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
   labels:
-    app: web
+    app: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: web
+      app: frontend
   template:
     metadata:
       labels:
-        app: web
+        app: frontend
     spec:
       containers:
-        - name: nginx
-          image: nginx:1.27
+        - name: frontend
+          image: lab-cicd-frontend:local
+          imagePullPolicy: Never
           ports:
             - containerPort: 80
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: web
+  name: frontend
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "2"
   labels:
-    app: web
+    app: frontend
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
-    app: web
+    app: frontend
   ports:
     - name: http
       port: 80
       targetPort: 80
+      nodePort: 30080
