@@ -1,5 +1,29 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: backend-success-rate
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 1
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(http_requests_total{route="/api/message",status!~"5.."}[2m]))
+              /
+              sum(rate(http_requests_total{route="/api/message"}[2m]))
+            ) or vector(1)
+      successCondition: result[0] >= 0.95
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: backend
   namespace: demo
@@ -8,7 +32,8 @@ metadata:
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 4
+  revisionHistoryLimit: 3
   selector:
     matchLabels:
       app: backend
@@ -21,21 +46,68 @@ spec:
         - name: backend
           image: lab-cicd-backend:local
           imagePullPolicy: Never
+          env:
+            - name: VERSION
+              value: "v1"
+            - name: ERROR_RATE
+              value: "0"
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+  strategy:
+    canary:
+      stableService: backend-stable
+      canaryService: backend-canary
+      steps:
+        - setWeight: 25
+        - pause:
+            duration: 30s
+        - analysis:
+            templates:
+              - templateName: backend-success-rate
+        - setWeight: 50
+        - pause:
+            duration: 30s
+        - analysis:
+            templates:
+              - templateName: backend-success-rate
+        - setWeight: 100
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: backend
+    monitoring: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-stable
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "1"
@@ -49,3 +121,69 @@ spec:
     - name: http
       port: 3000
       targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-canary
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: backend
+spec:
+  selector:
+    matchLabels:
+      monitoring: backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backend-slo
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: backend
+spec:
+  groups:
+    - name: backend.slo
+      rules:
+        - alert: BackendHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{route="/api/message",status=~"5.."}[2m]))
+              /
+              sum(rate(http_requests_total{route="/api/message"}[2m]))
+            ) > 0.05
+            and
+            sum(rate(http_requests_total{route="/api/message"}[2m])) > 0
+          for: 1m
+          labels:
+            severity: warning
+            slo: backend-success-rate
+          annotations:
+            summary: Backend success rate is below 95%
+            description: Backend /api/message is returning more than 5% errors over the last 2 minutes.

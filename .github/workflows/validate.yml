@@ -2,11 +2,7 @@ name: validate
 
 on:
   push:
-    paths:
-      - "k8s/**"
   pull_request:
-    paths:
-      - "k8s/**"
 
 jobs:
   validate:
@@ -21,4 +17,4 @@ jobs:
           sudo mv kubeconform /usr/local/bin/kubeconform
 
       - name: Validate Kubernetes manifests
-        run: kubeconform -strict -summary k8s/
+        run: kubeconform -strict -summary -ignore-missing-schemas k8s/ argocd/

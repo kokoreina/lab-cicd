@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export default function App() {
   const [message, setMessage] = useState("Dang tai message tu backend...");
