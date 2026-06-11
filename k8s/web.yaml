@@ -5,8 +5,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-apiVersion: apps/v999
-kind: Deployment
+apiVersion: apps/v9999
+kind: Deploymnet
 metadata:
   name: web
   namespace: demo
