@@ -2,12 +2,16 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
   namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
   labels:
     app: web
 spec:
@@ -31,6 +35,8 @@ kind: Service
 metadata:
   name: web
   namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
   labels:
     app: web
 spec:
