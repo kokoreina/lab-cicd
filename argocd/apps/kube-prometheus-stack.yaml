@@ -41,7 +41,7 @@ spec:
             receivers:
               - name: gmail
                 email_configs:
-                  - to: nguyentanhuy46205.com
+                  - to: nguyentanhuy46205@gmail.com
                     send_resolved: true
 
         prometheus:
