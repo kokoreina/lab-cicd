@@ -26,8 +26,8 @@ spec:
             global:
               resolve_timeout: 5m
               smtp_smarthost: smtp.gmail.com:587
-              smtp_from: YOUR_EMAIL@gmail.com
-              smtp_auth_username: YOUR_EMAIL@gmail.com
+              smtp_from: nguyentanhuy46205@gmail.com
+              smtp_auth_username: nguyentanhuy46205@gmail.com
               smtp_auth_password_file: /etc/alertmanager/secrets/alertmanager-gmail-auth/password
               smtp_require_tls: true
             route:
@@ -41,7 +41,7 @@ spec:
             receivers:
               - name: gmail
                 email_configs:
-                  - to: YOUR_EMAIL@gmail.com
+                  - to: nguyentanhuy46205.com
                     send_resolved: true
 
         prometheus:
